@@ -8,4 +8,7 @@ router.get("/get-articles", (req, res, next) => {
 router.get("/get-articles-list", (req, res, next) => {
     api.getBlogArticlesList(req.query, res, next);
 });
+router.post("/get-account", (req, res, next) => {
+    api.loginVerification(req.body, res, next);
+});
 module.exports = router;
