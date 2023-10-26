@@ -6,7 +6,13 @@ const router = require("./router")
 const bodyParser = require('body-parser')
 
 // 允许跨域请求的配置
-app.use(require("cors")())
+app.use(require("cors")(
+    {
+        allowCredentials: true,
+        allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
+        exposeHeaders: ['Authorization']
+    }
+))
 
 app.use(bodyParser.json({ limit: '50mb' }))
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }))

@@ -25,11 +25,19 @@ module.exports = {
     },
     //获取博客文章
     getBlogArticles(inputData, res, next) {
+        const token = inputData.headers['authorization']
+        const userInfo = jwt.decode(token)
+        const current = new Date().getTime()
+        const outOfTime = current - userInfo.exp * 1000 > 0
         connection.getConnection((err, connection) => {
-            connection.query(`SELECT * FROM articles WHERE id=${inputData.id}`, (err, result) => {
+            connection.query(`SELECT * FROM articles WHERE id=${inputData.query.id}`, (err, result) => {
                 if (err) {
                 } else {
-                    res.json(JSON.parse(JSON.stringify({ code: 1, data: result })));
+                    if (userInfo.name === 'Author' && !outOfTime) {
+                        res.json(JSON.parse(JSON.stringify({code: 1, data: {list:result, editRight: true}})));
+                    } else {
+                        res.json(JSON.parse(JSON.stringify({code: 1, data: {list:result, editRight: false}})));
+                    }
                 }
                 connection.release();
             });
@@ -43,7 +51,8 @@ module.exports = {
                         const rule = { id: result[0].id, name: result[0].name }
                         const secretKey = 'WQEASDWQAdsasdaDSAJKFDGHU'
                         // 设置token
-                        jwt.sign(rule, secretKey, { expiresIn: 3600 }, (err, token) => {
+                        // 时效性5个小时
+                        jwt.sign(rule, secretKey, { expiresIn: 18000 }, (err, token) => {
                             if (err) return err.message
                             res.json(JSON.parse(JSON.stringify({code: 1, data:{token: token}})));
                         })
