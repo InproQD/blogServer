@@ -11,4 +11,13 @@ router.get("/get-articles-list", (req, res, next) => {
 router.post("/get-account", (req, res, next) => {
     api.loginVerification(req.body, res, next);
 });
+router.post("/modify-article", (req, res, next) => {
+    api.editArticle(req.body, res, next);
+});
+router.post("/add-article", (req, res, next) => {
+    api.addArticle(req.body, res, next);
+});
+router.get("/verify-token", (req, res, next) => {
+    api.verifyToken(req, res, next);
+});
 module.exports = router;
