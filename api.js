@@ -92,17 +92,21 @@ module.exports = {
                     });
             });
         } else {
-            res.json({ code: 0, data: { msg: 'Invalid input data' } });
+            res.json({code: 0, data: {msg: 'Invalid input data'}});
         }
     },
     verifyToken(inputData, res, next) {
-        const token = inputData.headers['authorization']
-        const userInfo = jwt.decode(token)
-        const current = new Date().getTime()
-        const outOfTime = current - userInfo.exp * 1000 > 0
-        if (!outOfTime) {
-            res.json(JSON.parse(JSON.stringify({code: 1, data: {valid: true}})));
-        } else {
+        try {
+            const token = inputData.headers['authorization']
+            const userInfo = jwt.decode(token)
+            const current = new Date().getTime()
+            const outOfTime = current - userInfo.exp * 1000 > 0
+            if (!outOfTime) {
+                res.json(JSON.parse(JSON.stringify({code: 1, data: {valid: true}})));
+            } else {
+                res.json(JSON.parse(JSON.stringify({code: 1, data: {valid: false}})));
+            }
+        } catch {
             res.json(JSON.parse(JSON.stringify({code: 1, data: {valid: false}})));
         }
     }
