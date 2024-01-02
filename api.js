@@ -26,7 +26,7 @@ module.exports = {
     //获取博客文章
     getBlogArticles(inputData, res, next) {
         connection.getConnection((err, connection) => {
-            connection.query(`SELECT * FROM articles WHERE id=${inputData.query.id}`, (err, result) => {
+            connection.query(`SELECT * FROM articles WHERE id=?`, [inputData.id], (err, result) => {
                 if (err) {
                     res.json(JSON.parse(JSON.stringify({code: 1, data: {msg: "Failed to get data"}})));
                 } else {
@@ -38,7 +38,7 @@ module.exports = {
     },
     loginVerification(inputData, res, next) {
         connection.getConnection((err, connection) => {
-            connection.query(`SELECT * FROM account WHERE account_no = ${inputData.identifier}`, (err, result) => {
+            connection.query(`SELECT * FROM account WHERE account_no = ?`, [inputData.identifier], (err, result) => {
                 try {
                     if (result[0].password === inputData.password) {
                         const rule = {id: result[0].id, name: result[0].name}
@@ -61,7 +61,7 @@ module.exports = {
     },
     editArticle(inputData, res, next) {
         connection.getConnection((err, connection) => {
-            connection.query(`SELECT id FROM articles WHERE id=${inputData.id}`, (err, result) => {
+            connection.query(`SELECT id FROM articles WHERE id = ?`, [inputData.id], (err, result) => {
                 try {
                     if (result[0].id === inputData.id) {
                         const {content, title, tag, author, id} = inputData;
@@ -80,19 +80,48 @@ module.exports = {
         if (inputData.content && inputData.title && inputData.tag && inputData.author) {
             const create_time = new Date().getFullYear() + '-' + new Date().getMonth() + '-' + new Date().getDate()
             connection.getConnection((err, connection) => {
-                connection.query('INSERT INTO articles (content, title, tag, author, create_time) VALUES (?, ?, ?, ?, ?)',
-                    [inputData.content, inputData.title, inputData.tag, inputData.author, create_time],
-                    (err, result) => {
+                connection.query(
+                    'SELECT * FROM articles WHERE title = ? AND tag = ? AND author = ?',
+                    [inputData.title, inputData.tag, inputData.author],
+                    (err, rows) => {
                         if (err) {
-                            res.json({code: 0, data: {msg: 'Fail to update'}});
+                            res.json({code: 0, data: {msg: 'Fail to query'}});
                         } else {
-                            res.json({code: 1, data: {msg: 'Success'}});
+                            if (rows.length > 0) {
+                                // 存在记录，执行更新操作
+                                connection.query(
+                                    'UPDATE articles SET content = ?, create_time = ? WHERE title = ? AND tag = ? AND author = ?',
+                                    [inputData.content, create_time, inputData.title, inputData.tag, inputData.author],
+                                    (err, result) => {
+                                        if (err) {
+                                            res.json({code: 0, data: {msg: 'Fail to update'}});
+                                        } else {
+                                            res.json({code: 1, data: {msg: 'Success to update'}});
+                                        }
+                                        connection.release();
+                                    }
+                                );
+                            } else {
+                                // 不存在记录，执行插入操作
+                                connection.query(
+                                    'INSERT INTO articles (content, title, tag, author, create_time) VALUES (?, ?, ?, ?, ?)',
+                                    [inputData.content, inputData.title, inputData.tag, inputData.author, create_time],
+                                    (err, result) => {
+                                        if (err) {
+                                            res.json({code: 0, data: {msg: 'Fail to insert'}});
+                                        } else {
+                                            res.json({code: 1, data: {msg: 'Success to create'}});
+                                        }
+                                        connection.release();
+                                    }
+                                );
+                            }
                         }
-                        connection.release();
-                    });
+                    }
+                );
             });
         } else {
-            res.json({code: 0, data: {msg: 'Invalid input data'}});
+            res.json({code: 0, data: {msg: 'Invalid input data'}})
         }
     },
     verifyToken(inputData, res, next) {
@@ -109,5 +138,54 @@ module.exports = {
         } catch {
             res.json(JSON.parse(JSON.stringify({code: 1, data: {valid: false}})));
         }
+    },
+    getPreArticle(inputData, res, next) {
+        if (Number(inputData.id) <= 1) {
+            connection.getConnection((err, connection) => {
+                connection.query(`SELECT * FROM articles WHERE id = ${inputData.id}`, (err, result) => {
+                    if (err) {
+                        res.json(JSON.parse(JSON.stringify({code: 1, data: {msg: "Failed to get data"}})));
+                    } else {
+                        res.json(JSON.parse(JSON.stringify({code: 1, data: { list: result }})));
+                    }
+                    connection.release();
+                });
+            });
+        } else {
+            connection.getConnection((err, connection) => {
+                connection.query(`SELECT * FROM articles WHERE id < ${inputData.id} ORDER BY id DESC LIMIT 1`, (err, result) => {
+                    if (err) {
+                        res.json(JSON.parse(JSON.stringify({code: 1, data: {msg: "Failed to get data"}})));
+                    } else {
+                        res.json(JSON.parse(JSON.stringify({code: 1, data: {list: result}})));
+                    }
+                    connection.release();
+                });
+            });
+        }
+    },
+    getNextArticle(inputData, res, next) {
+        connection.getConnection((err, connection) => {
+            connection.query(`SELECT id FROM articles ORDER BY id DESC LIMIT 1`, (err, lastIdResult) => {
+                const lastId = lastIdResult[0].id;
+                if (Number(lastId) === Number(inputData.id)) {
+                    connection.query(`SELECT * FROM articles WHERE id = ${inputData.id}`, (err, result) => {
+                        if (err) {
+                            res.json({ code: 1, data: { msg: "Failed to get data" } });
+                        } else {
+                            res.json({ code: 1, data: { list: result } });
+                        }
+                    });
+                } else {
+                    connection.query(`SELECT * FROM articles WHERE id > ${inputData.id} LIMIT 1`, (err, result) => {
+                        if (err) {
+                            res.json({ code: 1, data: { msg: "Failed to get data" } });
+                        } else {
+                            res.json({ code: 1, data: { list: result } });
+                        }
+                    });
+                }
+            });
+        });
     }
 }
