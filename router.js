@@ -26,4 +26,13 @@ router.get("/get-pre-articles", (req, res, next) => {
 router.get("/get-next-articles", (req, res, next) => {
     api.getNextArticle(req.query, res, next);
 });
+router.post("/set-comment", (req, res, next) => {
+    api.setComment(req.body, res, next);
+});
+router.get("/get-comment-list", (req, res, next) => {
+    api.listComments(req.query, res, next);
+});
+router.get("/get-comment-list", (req, res, next) => {
+    api.listComments(req.query, res, next);
+});
 module.exports = router;

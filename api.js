@@ -146,7 +146,7 @@ module.exports = {
                     if (err) {
                         res.json(JSON.parse(JSON.stringify({code: 1, data: {msg: "Failed to get data"}})));
                     } else {
-                        res.json(JSON.parse(JSON.stringify({code: 1, data: { list: result }})));
+                        res.json(JSON.parse(JSON.stringify({code: 1, data: {list: result}})));
                     }
                     connection.release();
                 });
@@ -171,20 +171,55 @@ module.exports = {
                 if (Number(lastId) === Number(inputData.id)) {
                     connection.query(`SELECT * FROM articles WHERE id = ${inputData.id}`, (err, result) => {
                         if (err) {
-                            res.json({ code: 1, data: { msg: "Failed to get data" } });
+                            res.json({code: 1, data: {msg: "Failed to get data"}});
                         } else {
-                            res.json({ code: 1, data: { list: result } });
+                            res.json({code: 1, data: {list: result}});
                         }
+                        connection.release();
                     });
                 } else {
                     connection.query(`SELECT * FROM articles WHERE id > ${inputData.id} LIMIT 1`, (err, result) => {
                         if (err) {
-                            res.json({ code: 1, data: { msg: "Failed to get data" } });
+                            res.json({code: 1, data: {msg: "Failed to get data"}});
                         } else {
-                            res.json({ code: 1, data: { list: result } });
+                            res.json({code: 1, data: {list: result}});
                         }
+                        connection.release();
                     });
                 }
+            });
+        });
+    },
+    setComment(inputData, res, next) {
+        if (inputData.content && inputData.name) {
+            const start_time = new Date().getFullYear() + '-' + (new Date().getMonth() + 1) + '-' + new Date().getDate()
+            connection.getConnection((err, connection) => {
+                connection.query(
+                    'INSERT INTO comment (comment_content, name, avatar_url, parentId, time, respondent, articleId) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [inputData.content, inputData.name, inputData.avatar, inputData.parentId, start_time, inputData.respondent, inputData.articleId],
+                    (err, result) => {
+                        if (err) {
+                            res.json({code: 0, data: {msg: 'Fail to set comment'}});
+                        } else {
+                            res.json({code: 1, data: {msg: 'Successful comment'}});
+                        }
+                        connection.release()
+                    }
+                )
+            })
+        } else {
+            res.json({code: 0, data: {msg: 'Fail to set comment'}});
+        }
+    },
+    listComments(inputData, res, next) {
+        connection.getConnection((err, connection) => {
+            connection.query(`SELECT id, parentId, name, time, comment_content, avatar_url, respondent, articleId FROM comment`, (err, result) => {
+                if (err) {
+                    res.json(JSON.parse(JSON.stringify({code: 1, data: {msg: "Failed to get data"}})));
+                } else {
+                    res.json(JSON.parse(JSON.stringify({code: 1, data: {list: result}})));
+                }
+                connection.release()
             });
         });
     }
